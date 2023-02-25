@@ -1,0 +1,18 @@
+[package]
+name = "aurochs"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Write html as if you were doing it with JavaScript, but in Rust"
+homepage = ""
+documentation = "https://docs.rs/aurochs"
+repository = "https://github.com/ionutrogojan/aurochs"
+keywords = ["html"]
+categories = ["template-engine", "web-programming"]
+readme = "readme.md"
+
+[lib]
+name = "aurochs"
+path = "src/aurochs.rs"
+
+[dependencies]
