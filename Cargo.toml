@@ -1,6 +1,6 @@
 [package]
 name = "aurochs"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 license = "MIT"
 description = "Write html as if you were doing it with JavaScript, but in Rust"

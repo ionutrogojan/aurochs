@@ -2,67 +2,55 @@
 //! 
 //! Pronounced O-rocks
 //! 
-//! ### History
+//! ### Usage:
+//! Aurochs is a html generator. Using a similar syntax to JavaScript, easily create templates, generate html and create amazing applications.
 //! 
-//! Is an extinct cattle species, considered to be the wild ancestor of modern domestic cattle. With a shoulder height of up to 180 cm (71 in) in bulls and 155 cm (61 in) in cows, it was one of the largest herbivores in the Holocene; it had massive elongated and broad horns that reached 80 cm (31 in) in length. [Wiki](https://en.wikipedia.org/wiki/Aurochs)
+//! Brings some of the JavaScript functionality of creating HTML elements to Rust
 //! 
 //! ### Some use cases may include:
 //! 1. A server side application where you use Rust to generate the HTML and you send the generated string as the request result
 //! 2. A static site generator where you create a blog template which takes a set of arguments and returns a html representation
 //! 3. A frontend generator for applications making use of html, such as [Tauri](https://tauri.app/) and [Electron](https://www.electronjs.org/)
-//! 
-//! Brings some of the JavaScript functionality of creating HTML elements to Rust
-use std::rc::Rc;
-/// A list of all available HTML elements
-/// 
-/// # Example
-/// ```
-/// Element::HTML
-/// ```
-#[derive(Debug, Clone)]
-pub enum Element {
-    HTML, HEAD, LINK, META, STYLE, TITLE, BODY, HEADER, MAIN, FOOTER, // MAIN ELEMENTS
-    ARTICLE, ASIDE, NAV, SECTION, DIV, UL, OL, LI, SPAN, BR, // SECTIONING ELEMENTS
-    H1, H2, H3, H4, H5, H6, P, A, // TEXT ELEMENTS
-    IMG, AUDIO, VIDEO, TRACK, SOURCE, SVG, CANVAS, // MEDIA ELEMENTS
-    SCRIPT, 
-    BUTTON, INPUT, DATALIST, SELECT, OPTION, FORM, LABEL, TEXTAREA, DETAILS, DIALOG, SUMMARY, // INPUT ELEMENTS
-    TEMPLATE
+enum Closing { TAG, NONE }
+impl Closing {
+    fn clone(&self) -> Closing {
+        match *self {
+            Closing::NONE => Closing::NONE,
+            Closing::TAG => Closing::TAG
+        }
+    }
 }
-#[derive(Debug, Clone)]
-enum Closing { TAG, SELF, NONE }
-#[derive(Debug, Clone)]
 enum Children {
     Text(String),
-    Node(Rc<Node>)
+    Node(Node)
 }
-#[derive(Debug, Clone)]
-/// A mutable struct composed of a tag, attribute list, child list and closing tag.
+/// A mutable struct composed of a tag, attribute list, child list and closing type.
 /// 
 /// Do not attempt to modify the Node element directly. Use the available methods.
 /// ```
 /// Node {
-///     tag: Element,
+///     tag: String,
 ///     attributes: Option<Vec<String>>,
 ///     children: Option<Vec<Children>>,
-///     closing_tag: Closing
+///     closing_type: Closing
 /// }
 /// ```
 pub struct Node {
-    tag: Element,
+    tag: String,
     attributes: Option<Vec<String>>,
     children: Option<Vec<Children>>,
-    closing_tag: Closing
+    closing_type: Closing
 }
 
+// FIXME:: You should be using traits rather than methods for a bunch of things - Clone, ToString, maybe even Extend
 impl Node {
     /// Sets the value of the Node's attribute. This does not return an error if the wrong (key, value) was set.
     /// 
     /// # Example
     /// ```
-    /// use aurochs::{ Document, Element };
+    /// use aurochs::Document;
     /// 
-    /// let mut html = Document::create_element(Element::HTML);
+    /// let mut html = Document::create_element("html");
     /// html.set_attribute("lang", "en");
     /// ```
     /// 
@@ -92,9 +80,9 @@ impl Node {
     /// # Example
     /// 
     /// ```
-    /// use aurochs::{ Document, Element };
+    /// use aurochs::Document;
     /// 
-    /// let mut script = Document::create_element(Element::SCRIPT);
+    /// let mut script = Document::create_element("script");
     /// script.set_attribute_list(vec![("src", "./main.js"), ("defer", ""), ("type", "module")]);
     /// ```
     /// # Javascript Equivalent 
@@ -118,9 +106,9 @@ impl Node {
     /// 
     /// # Example
     /// ```
-    /// use aurochs::{ Document, Element };
+    /// use aurochs::Document;
     /// 
-    /// let mut paragraph = Document::create_element(Element::P);
+    /// let mut paragraph = Document::create_element("p");
     /// paragraph.inner_text("Hello World!");
     /// ```
     /// 
@@ -149,10 +137,10 @@ impl Node {
     /// 
     /// # Example
     /// ```
-    /// use aurochs::{ Document, Element };
+    /// use aurochs::Document;
     /// 
-    /// let mut body = Document::create_element(Element::BODY);
-    /// let mut paragraph = Document::create_element(Element::P);
+    /// let mut body = Document::create_element("body");
+    /// let mut paragraph = Document::create_element("p");
     /// body.append_child(paragraph);
     /// ```
     /// 
@@ -170,12 +158,12 @@ impl Node {
     ///     <p><p>
     /// </body>
     /// ```
-    pub fn append_child(&mut self, node: Node) {
+    pub fn append_child(&mut self, node: Node) { // TODO: return a result of Error if trying to append child to Closing::NONE element
         match &mut self.children {
-            Some(child) => child.push(Children::Node(Rc::new(node))),
+            Some(child) => child.push(Children::Node(node)),
             None => {
                 let mut children: Vec<Children> = Vec::new();
-                children.push(Children::Node(Rc::new(node)));
+                children.push(Children::Node(node));
                 self.children = Some(children);
             }
         }
@@ -184,12 +172,12 @@ impl Node {
     /// 
     /// # Example
     /// ```
-    /// use aurochs::{ Document, Element };
+    /// use aurochs::Document;
     /// 
-    /// let mut body = Document::create_element(Element::BODY);
-    /// let mut h1 = Document::create_element(Element::H1);
-    /// let mut h2 = Document::create_element(Element::H2);
-    /// let mut h3 = Document::create_element(Element::H3);
+    /// let mut body = Document::create_element("body");
+    /// let mut h1 = Document::create_element("h1");
+    /// let mut h2 = Document::create_element("h2");
+    /// let mut h3 = Document::create_element("h3");
     /// body.append_child_list(vec![ h1, h2, h3 ]);
     /// ```
     /// 
@@ -227,9 +215,9 @@ impl Node {
     /// 
     /// # Example
     /// ```
-    /// use aurochs::{ Document, Element };
+    /// use aurochs::Document;
     /// 
-    /// let mut paragraph = Document::create_element(Element::P);
+    /// let mut paragraph = Document::create_element("p");
     /// let mut paragraph_clone = paragraph.clone_node();
     /// ```
     /// 
@@ -245,9 +233,33 @@ impl Node {
     /// <p><p>
     /// <p><p>
     /// ```
+    // pub fn clone_node(&self) -> Node {
+    //     let cloned_attributes = match &self.attributes {
+    //         Some(attrs) => Some(attrs.clone()),
+    //         None => None,
+    //     };
+
+    //     let cloned_children = match &self.children {
+    //         Some(children) => {
+    //             let mut cloned_children = Vec::new();
+    //             for child in children {
+    //                 match child {
+    //                     Children::Text(text) => {
+    //                         cloned_children.push(Children::Text(text.clone()));
+    //                     },
+    //                     Children::Node(node) => {
+    //                         cloned_children.push(Children::Node(node.clone_node()));
+    //                     },
+    //                 }
+    //             }
+    //             Some(cloned_children)
+    //         },
+    //         None => None,
+    //     };
+
     pub fn clone_node(&self) -> Node {
         let cloned_attributes = match &self.attributes {
-            Some(attrs) => Some(attrs.clone()),
+            Some(attrs) => Some(attrs.iter().cloned().collect()),
             None => None,
         };
 
@@ -255,17 +267,13 @@ impl Node {
             Some(children) => {
                 let mut cloned_children = Vec::new();
                 for child in children {
-                    match child {
-                        Children::Text(text) => {
-                            cloned_children.push(Children::Text(text.clone()));
-                        },
-                        Children::Node(node) => {
-                            cloned_children.push(Children::Node(Rc::new(node.clone_node())));
-                        },
-                    }
+                    cloned_children.push(match child {
+                        Children::Text(text) => Children::Text(text.clone()),
+                        Children::Node(node) => Children::Node(node.clone_node()),
+                    });
                 }
                 Some(cloned_children)
-            },
+            }
             None => None,
         };
 
@@ -273,20 +281,27 @@ impl Node {
             tag: self.tag.clone(),
             attributes: cloned_attributes,
             children: cloned_children,
-            closing_tag: self.closing_tag.clone(),
+            closing_type: self.closing_type.clone(),
         }
     }
+    //     Node {
+    //         tag: self.tag,
+    //         attributes: cloned_attributes,
+    //         children: cloned_children,
+    //         closing_type: self.closing_type,
+    //     }
+    // }
     /// Returns the parsed Node Tree as a string
     /// 
     /// # Example
     /// ```
-    /// use aurochs::{ Document, Element };
+    /// use aurochs::Document;
     /// 
-    /// let mut html = Document::create_element(Element::HTML);
+    /// let mut html = Document::create_element("html");
     /// html.set_attribute("lang", "en");
     ///
-    /// let mut head = Document::create_element(Element::HEAD);
-    /// let mut body = Document::create_element(Element::BODY);
+    /// let mut head = Document::create_element("head");
+    /// let mut body = Document::create_element("body");
     /// 
     /// html.append_child_list(vec![ head, body]);
     /// 
@@ -301,10 +316,8 @@ impl Node {
     /// </html>
     /// ```
     pub fn render(&self) -> String {
-        let tag = format!("{:?}", self.tag).to_lowercase();
-
         let attributes = match &self.attributes {
-            Some(attrs) => attrs.join(" "),
+            Some(attrs) => format!(" {}", attrs.join(" ")),
             None => String::new(),
         };
 
@@ -322,10 +335,9 @@ impl Node {
             None => String::new(),
         };
 
-        match &self.closing_tag {
-            Closing::TAG => format!("<{} {}>{}</{}>", tag, attributes, children, tag),
-            Closing::SELF => format!("<{} {}/>", tag, attributes),
-            Closing::NONE => format!("<{} {}>", tag, attributes),
+        match &self.closing_type {
+            Closing::TAG => format!("<{}{}>{}</{}>", self.tag, attributes, children, self.tag),
+            Closing::NONE => format!("<{}{}>", self.tag, attributes),
         }
     }
 }
@@ -340,9 +352,9 @@ impl Document {
     /// # Example
     /// 
     /// ```
-    /// use aurochs::{ Document, Element };
+    /// use aurochs::Document;
     /// 
-    /// let mut html = Document::create_element(Element::HTML);
+    /// let mut html = Document::create_element("html");
     /// ```
     /// 
     /// # Javascript Equivalent 
@@ -355,62 +367,17 @@ impl Document {
     /// ```
     /// <html></html>
     /// ```
-    pub fn create_element(element: Element) -> Node {
-        let closing_tag = match element {
-            Element::HTML => Closing::TAG,
-            Element::HEAD => Closing::TAG,
-            Element::LINK => Closing::NONE,
-            Element::META => Closing::NONE,
-            Element::STYLE => Closing::TAG,
-            Element::TITLE => Closing::TAG,
-            Element::BODY => Closing::TAG,
-            Element::HEADER => Closing::TAG,
-            Element::MAIN => Closing::TAG,
-            Element::FOOTER => Closing::TAG,
-            Element::ARTICLE => Closing::TAG,
-            Element::ASIDE => Closing::TAG,
-            Element::NAV => Closing::TAG,
-            Element::SECTION => Closing::TAG,
-            Element::DIV => Closing::TAG,
-            Element::UL => Closing::TAG,
-            Element::OL => Closing::TAG,
-            Element::LI => Closing::TAG,
-            Element::SPAN => Closing::TAG,
-            Element::BR => Closing::SELF,
-            Element::H1 => Closing::TAG,
-            Element::H2 => Closing::TAG,
-            Element::H3 => Closing::TAG,
-            Element::H4 => Closing::TAG,
-            Element::H5 => Closing::TAG,
-            Element::H6 => Closing::TAG,
-            Element::P => Closing::TAG,
-            Element::A => Closing::TAG,
-            Element::IMG => Closing::NONE,
-            Element::AUDIO => Closing::TAG,
-            Element::VIDEO => Closing::TAG,
-            Element::TRACK => Closing::SELF,
-            Element::SOURCE => Closing::SELF,
-            Element::SVG => Closing::TAG,
-            Element::CANVAS => Closing::TAG,
-            Element::SCRIPT => Closing::TAG,
-            Element::BUTTON => Closing::TAG,
-            Element::INPUT => Closing::NONE,
-            Element::DATALIST => Closing::TAG,
-            Element::SELECT => Closing::TAG,
-            Element::OPTION => Closing::TAG,
-            Element::FORM => Closing::TAG,
-            Element::LABEL => Closing::TAG,
-            Element::TEXTAREA => Closing::TAG,
-            Element::DETAILS => Closing::TAG,
-            Element::DIALOG => Closing::TAG,
-            Element::SUMMARY => Closing::TAG,
-            Element::TEMPLATE => Closing::TAG,
+    pub fn create_element(element_tag: &str) -> Node {
+        let closing_type:Closing = match element_tag {
+            "area" | "base" | "br" | "command" | "col" | "embed" | "hr" | "img" | "input" | "link" | "meta" | "param" | "source" => Closing::NONE,
+            _ => Closing::TAG
         };
-        Node { tag: element, attributes: None, children: None, closing_tag }
+        Node { tag: element_tag.to_string(), attributes: None, children: None, closing_type }
     }
-
     // pub fn create_default() -> Vec<Node> {
     // TODO: create a default template and append the content to it
     // return a vec![ HEAD, BODY ] so we can append elements to it
     // }
+
+    // TODO: create custom element -> <x-custom></x-custom>
 }
